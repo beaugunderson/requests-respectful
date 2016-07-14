@@ -3,6 +3,11 @@ from redis import StrictRedis, ConnectionError
 
 from .exceptions import RequestsRespectfulConfigError, RequestsRespectfulRedisError
 
+# Python 2 does not include FileNotFoundError
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
 
 # CONFIG
 default_config = {
