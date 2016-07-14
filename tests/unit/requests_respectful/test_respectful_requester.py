@@ -170,7 +170,7 @@ def test_the_instance_should_be_able_to_unregister_a_realm():
     rr.register_realm("TEST123", max_requests=100, timespan=300)
 
     request_func = lambda: requests.get("http://google.com")
-    rr._perform_request(request_func, "TEST123")
+    rr._perform_request(request_func, ["TEST123"])
 
     rr.unregister_realm("TEST123")
 
@@ -238,9 +238,9 @@ def test_the_instance_should_be_able_to_determine_the_amount_of_requests_perform
 
     request_func = lambda: requests.get("http://google.com")
 
-    rr._perform_request(request_func, "TEST123")
-    rr._perform_request(request_func, "TEST123")
-    rr._perform_request(request_func, "TEST123")
+    rr._perform_request(request_func, ["TEST123"])
+    rr._perform_request(request_func, ["TEST123"])
+    rr._perform_request(request_func, ["TEST123"])
 
     assert rr._requests_in_timespan("TEST123") == 3
 
@@ -276,7 +276,7 @@ def test_the_instance_should_perform_the_request_if_it_is_allowed_to_on_a_regist
     rr.register_realm("TEST123", max_requests=1000, timespan=5)
 
     request_func = lambda: requests.get("http://google.com")
-    assert type(rr._perform_request(request_func, "TEST123")) == requests.Response
+    assert type(rr._perform_request(request_func, ["TEST123"])) == requests.Response
 
     rr.unregister_realm("TEST123")
 
@@ -289,7 +289,7 @@ def test_the_instance_should_return_a_rate_limit_exception_if_the_request_is_not
     request_func = lambda: requests.get("http://google.com")
 
     with pytest.raises(RequestsRespectfulRateLimitedError):
-        rr._perform_request(request_func, "TEST123")
+        rr._perform_request(request_func, ["TEST123"])
 
     rr.unregister_realm("TEST123")
 
@@ -332,12 +332,12 @@ def test_the_instance_should_get_the_same_results_by_using_the_requests_proxy_as
 
     rr.register_realm("TEST123", max_requests=100, timespan=300)
 
-    assert type(rr.get("http://google.com", realm="TEST123")) == requests.Response
+    assert type(rr.get("http://google.com", realms="TEST123")) == requests.Response
 
     rr.update_realm("TEST123", max_requests=0)
 
     with pytest.raises(RequestsRespectfulRateLimitedError):
-        rr.get("http://google.com", realm="TEST123")
+        rr.get("http://google.com", realms="TEST123")
 
     rr.unregister_realm("TEST123")
 
