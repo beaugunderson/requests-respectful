@@ -58,7 +58,7 @@ try:
             )
         )
 except FileNotFoundError:
-    config = default_config
+    config = default_config.copy()
 
 
 # REDIS CLIENT
