@@ -7,6 +7,8 @@ import time
 
 import requests
 
+from collections import Sequence
+
 
 class RespectfulRequester:
 
@@ -23,20 +25,24 @@ class RespectfulRequester:
     def redis_prefix(self):
         return "RespectfulRequester"
 
-    def request(self, request_func, realm, wait=False):
-        if realm not in self.fetch_registered_realms():
-            raise RequestsRespectfulError("Realm '%s' hasn't been registered" % realm)
+    def request(self, request_func, realms, wait=False):
+        if not isinstance(realms, Sequence) or isinstance(realms, basestring):
+            realms = [realms]
+
+        for realm in realms:
+            if realm not in self.fetch_registered_realms():
+                raise RequestsRespectfulError("Realm '%s' hasn't been registered" % realm)
 
         if wait:
             while True:
                 try:
-                    return self._perform_request(request_func, realm)
+                    return self._perform_request(request_func, realms)
                 except RequestsRespectfulRateLimitedError:
                     pass
 
                 time.sleep(1)
         else:
-            return self._perform_request(request_func, realm)
+            return self._perform_request(request_func, realms)
 
     def fetch_registered_realms(self):
         return list(map(lambda k: k.decode("utf-8"), self.redis.smembers("%s:REALMS" % self.redis_prefix)))
@@ -119,21 +125,25 @@ class RespectfulRequester:
 
         return config
 
-    def _perform_request(self, request_func, realm):
+    def _perform_request(self, request_func, realms):
         self._validate_request_func(request_func)
 
-        if self._can_perform_request(realm):
+        limited_realms = [realm for realm in realms if not self._can_perform_request(realm)]
+
+        if not limited_realms:
             request_uuid = str(uuid.uuid4())
 
-            self.redis.setex(
-                name="%s:REQUEST:%s:%s" % (self.redis_prefix, realm, request_uuid),
-                time=self.realm_timespan(realm),
-                value=request_uuid
-            )
+            for realm in realms:
+                self.redis.setex(
+                    name="%s:REQUEST:%s:%s" % (self.redis_prefix, realm, request_uuid),
+                    time=self.realm_timespan(realm),
+                    value=request_uuid
+                )
 
             return request_func()
         else:
-            raise RequestsRespectfulRateLimitedError("Currently rate-limited on Realm: %s" % realm)
+            raise RequestsRespectfulRateLimitedError(
+                "Currently rate-limited on Realm(s): {}".format(', '.join(limited_realms)))
 
     def _realm_redis_key(self, realm):
         return "%s:REALMS:%s" % (self.redis_prefix, realm)
@@ -159,13 +169,13 @@ class RespectfulRequester:
 
     # Requests proxy
     def _requests_proxy(self, method, *args, **kwargs):
-        realm = kwargs.pop("realm", None)
+        realms = kwargs.pop("realms", None)
         wait = kwargs.pop("wait", False)
 
-        if realm is None:
-            raise RequestsRespectfulError("'realm' is a required kwarg")
+        if realms is None:
+            raise RequestsRespectfulError("'realms' is a required kwarg")
 
-        return self.request(lambda: getattr(requests, method)(*args, **kwargs), realm, wait=wait)
+        return self.request(lambda: getattr(requests, method)(*args, **kwargs), realms, wait=wait)
 
     def _requests_proxy_delete(self, *args, **kwargs):
         return self._requests_proxy("delete", *args, **kwargs)
