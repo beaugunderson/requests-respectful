@@ -1,13 +1,15 @@
-from .globals import default_config, config
-from .exceptions import RequestsRespectfulError, RequestsRespectfulConfigError, RequestsRespectfulRateLimitedError
-
 import uuid
 import inspect
 import time
 
+from collections import Sequence
+
 import requests
 
-from collections import Sequence
+from redis import StrictRedis, ConnectionError
+
+from .globals import default_config, config
+from .exceptions import RequestsRespectfulError, RequestsRespectfulConfigError, RequestsRespectfulRateLimitedError, RequestsRespectfulRedisError
 
 
 class RespectfulRequester:

@@ -1,7 +1,6 @@
 import yaml
-from redis import StrictRedis, ConnectionError
 
-from .exceptions import RequestsRespectfulConfigError, RequestsRespectfulRedisError
+from .exceptions import RequestsRespectfulConfigError
 
 # Python 2 does not include FileNotFoundError
 try:
