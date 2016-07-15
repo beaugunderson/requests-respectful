@@ -60,17 +60,3 @@ try:
         )
 except FileNotFoundError:
     config = default_config.copy()
-
-
-# REDIS CLIENT
-redis = StrictRedis(
-    host=config["redis"]["host"],
-    port=config["redis"]["port"],
-    password=config["redis"]["password"],
-    db=config["redis"]["database"]
-)
-
-try:
-    redis.echo("Testing Connection")
-except ConnectionError:
-    raise RequestsRespectfulRedisError("Could not establish a connection to the provided Redis server")
